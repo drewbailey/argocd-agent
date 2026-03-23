@@ -69,6 +69,10 @@ type RequestHandler struct {
 	// ignoreUnmanagedApps indicates that resources without the source UID annotation
 	// should be silently skipped during resync instead of causing an error.
 	ignoreUnmanagedApps bool
+
+	// principalUID is stamped on outgoing events so that agents can detect
+	// principal transitions during resync after a failover.
+	principalUID string
 }
 
 func NewRequestHandler(dynClient dynamic.Interface, queue workqueue.TypedRateLimitingInterface[*cloudevent.Event], events *event.EventSource, resources *resources.Resources, log *logrus.Entry, role manager.ManagerRole, namespace string) *RequestHandler {
@@ -81,6 +85,14 @@ func NewRequestHandler(dynClient dynamic.Interface, queue workqueue.TypedRateLim
 		role:      role,
 		namespace: namespace,
 	}
+}
+
+// WithPrincipalUID sets the principal identity that will be stamped on all
+// outgoing events during resync. Required for agents to correctly handle
+// principal transitions after failover.
+func (r *RequestHandler) WithPrincipalUID(uid string) *RequestHandler {
+	r.principalUID = uid
+	return r
 }
 
 // WithDestinationBasedMapping sets whether destination-based mapping is enabled.
@@ -333,6 +345,7 @@ func (r *RequestHandler) handleUpdatedResource(logCtx *logrus.Entry, reqUpdate *
 		}
 
 		ev := r.events.ApplicationEvent(event.SpecUpdate, app)
+		r.stampPrincipalUID(ev)
 		logCtx.Trace("Sending a request to update the application")
 		r.sendQ.Add(ev)
 
@@ -352,6 +365,12 @@ func (r *RequestHandler) handleUpdatedResource(logCtx *logrus.Entry, reqUpdate *
 	}
 
 	return nil
+}
+
+func (r *RequestHandler) stampPrincipalUID(ev *cloudevent.Event) {
+	if r.principalUID != "" {
+		event.SetPrincipalUID(ev, r.principalUID)
+	}
 }
 
 // isAppProjectRelevant checks if the incoming AppProject/Repository is still relevant to the agent based on the AppProject rules.
@@ -446,6 +465,7 @@ func (r *RequestHandler) handleDeletedResource(logCtx *logrus.Entry, reqUpdate *
 		}
 
 		ev := r.events.ApplicationEvent(event.Delete, app)
+		r.stampPrincipalUID(ev)
 		logCtx.Trace("Sending a request to delete the orphaned application")
 		r.sendQ.Add(ev)
 		return nil
