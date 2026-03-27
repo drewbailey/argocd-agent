@@ -634,11 +634,10 @@ func (s *Server) Start(ctx context.Context, errch chan error) error {
 		log().Infof("Starting %s (server) v%s (allowed_namespaces=%v)", s.version.Name(), s.version.Version(), s.options.namespaces)
 	}
 
-	ns := s.namespace
-	if ns == "" {
-		ns = "argocd"
+	if s.namespace == "" {
+		return fmt.Errorf("namespace is required for principal identity")
 	}
-	uid, err := principalIdentity.EnsurePrincipalUID(ctx, s.kubeClient.Clientset, ns)
+	uid, err := principalIdentity.EnsurePrincipalUID(ctx, s.kubeClient.Clientset, s.namespace)
 	if err != nil {
 		log().WithError(err).Error("failed to load/create principal identity")
 		return err
@@ -683,7 +682,7 @@ func (s *Server) Start(ctx context.Context, errch chan error) error {
 	go s.RunHandlersOnConnect(s.ctx)
 
 	if err = s.StartEventProcessor(s.ctx); err != nil {
-		return nil
+		return err
 	}
 
 	// The application informer lives in its own go routine
