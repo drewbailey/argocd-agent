@@ -384,6 +384,7 @@ func (s *Server) Subscribe(subs eventstreamapi.EventStream_SubscribeServer) erro
 
 	eventWriter := s.eventWriters.Get(c.agentName)
 	if eventWriter != nil {
+		eventWriter.SetMetrics(s.metrics)
 		eventWriter.UpdateTarget(subs)
 	} else {
 		eventWriter = event.NewEventWriter(subs)
