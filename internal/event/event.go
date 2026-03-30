@@ -126,7 +126,6 @@ func EnqueuedAt(ev *cloudevents.Event) *time.Time {
 	return &t
 }
 
-
 var (
 	ErrEventDiscarded    error = errors.New("event discarded")
 	ErrEventNotAllowed   error = errors.New("event not allowed in this agent mode")
