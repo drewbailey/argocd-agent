@@ -2386,7 +2386,7 @@ func Test_identityAction(t *testing.T) {
 				SourceUIDMatch:    false,
 				PrincipalUIDMatch: true,
 			},
-			expected: identityActionDeleteRecreate,
+			expected: identityActionMismatch,
 		},
 		{
 			name: "same principal, missing source-uid → stamp",
@@ -2435,7 +2435,7 @@ func Test_identityAction(t *testing.T) {
 				PrincipalUIDMatch:   true,
 				MissingPrincipalUID: true,
 			},
-			expected: identityActionDeleteRecreate,
+			expected: identityActionMismatch,
 		},
 		{
 			name: "adopted principal-uid, source-uid mismatch → transition (pre-upgrade failover)",

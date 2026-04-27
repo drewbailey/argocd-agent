@@ -302,7 +302,7 @@ func (a *Agent) syncManagedApplication(logCtx *logrus.Entry, incomingApp *v1alph
 		switch a.effectiveMismatchPolicy(incomingApp) {
 		case manager.MismatchPolicyUpsert:
 			logCtx.Info("Source UID mismatch, upsert policy: updating in-place")
-			if _, err := a.updateApplication(incomingApp); err != nil {
+			if err := a.updateManagedApplicationIdentity(incomingApp, principalUID); err != nil {
 				return fmt.Errorf("could not upsert app on source-uid mismatch: %w", err)
 			}
 			return nil
@@ -358,6 +358,13 @@ func (a *Agent) effectiveMismatchPolicy(incoming metav1.Object) manager.SourceUI
 		}
 	}
 	return a.mismatchPolicy
+}
+
+func stampSourceUID(meta *metav1.ObjectMeta, uid string) {
+	if meta.Annotations == nil {
+		meta.Annotations = make(map[string]string)
+	}
+	meta.Annotations[manager.SourceUIDAnnotation] = uid
 }
 
 // identityAction determines how the agent should handle an incoming resource
@@ -424,6 +431,7 @@ func (a *Agent) processIncomingAppProject(ev *event.Event) error {
 			} else {
 				if a.effectiveMismatchPolicy(incomingAppProject) == manager.MismatchPolicyUpsert {
 					logCtx.Info("AppProject source UID mismatch, upsert policy: updating in-place")
+					stampSourceUID(&incomingAppProject.ObjectMeta, string(incomingAppProject.UID))
 					_, err := a.updateAppProject(incomingAppProject)
 					return err
 				}
@@ -450,6 +458,7 @@ func (a *Agent) processIncomingAppProject(ev *event.Event) error {
 		if !sourceUIDMatch {
 			if a.effectiveMismatchPolicy(incomingAppProject) == manager.MismatchPolicyUpsert {
 				logCtx.Info("AppProject source UID mismatch, upsert policy: updating in-place")
+				stampSourceUID(&incomingAppProject.ObjectMeta, string(incomingAppProject.UID))
 				_, err := a.updateAppProject(incomingAppProject)
 				return err
 			}
@@ -519,6 +528,7 @@ func (a *Agent) processIncomingRepository(ev *event.Event) error {
 			} else {
 				if a.effectiveMismatchPolicy(incomingRepo) == manager.MismatchPolicyUpsert {
 					logCtx.Info("Repository source UID mismatch, upsert policy: updating in-place")
+					stampSourceUID(&incomingRepo.ObjectMeta, string(incomingRepo.UID))
 					_, err := a.updateRepository(incomingRepo)
 					return err
 				}
@@ -546,6 +556,7 @@ func (a *Agent) processIncomingRepository(ev *event.Event) error {
 		if !sourceUIDMatch {
 			if a.effectiveMismatchPolicy(incomingRepo) == manager.MismatchPolicyUpsert {
 				logCtx.Info("Repository source UID mismatch, upsert policy: updating in-place")
+				stampSourceUID(&incomingRepo.ObjectMeta, string(incomingRepo.UID))
 				_, err := a.updateRepository(incomingRepo)
 				return err
 			}
@@ -1116,6 +1127,7 @@ func (a *Agent) processIncomingGPGKey(ev *event.Event) error {
 			} else {
 				if a.effectiveMismatchPolicy(incomingCM) == manager.MismatchPolicyUpsert {
 					logCtx.Info("GPG key source UID mismatch, upsert policy: updating in-place")
+					stampSourceUID(&incomingCM.ObjectMeta, string(incomingCM.UID))
 					_, err := a.updateGPGKey(incomingCM)
 					return err
 				}
@@ -1143,6 +1155,7 @@ func (a *Agent) processIncomingGPGKey(ev *event.Event) error {
 		if !sourceUIDMatch {
 			if a.effectiveMismatchPolicy(incomingCM) == manager.MismatchPolicyUpsert {
 				logCtx.Info("GPG key source UID mismatch, upsert policy: updating in-place")
+				stampSourceUID(&incomingCM.ObjectMeta, string(incomingCM.UID))
 				_, err := a.updateGPGKey(incomingCM)
 				return err
 			}

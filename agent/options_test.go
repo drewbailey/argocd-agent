@@ -19,9 +19,9 @@ import (
 	"testing"
 	"time"
 
-	fakekube "github.com/argoproj-labs/argocd-agent/test/fake/kube"
 	"github.com/argoproj-labs/argocd-agent/internal/manager"
 	"github.com/argoproj-labs/argocd-agent/pkg/client"
+	fakekube "github.com/argoproj-labs/argocd-agent/test/fake/kube"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
