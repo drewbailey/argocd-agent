@@ -298,7 +298,7 @@ func (a *Agent) syncManagedApplication(logCtx *logrus.Entry, incomingApp *v1alph
 			return fmt.Errorf("could not update app after source-uid wipe: %w", err)
 		}
 		return nil
-	case identityActionDeleteRecreate:
+	case identityActionMismatch:
 		switch a.effectiveMismatchPolicy(incomingApp) {
 		case manager.MismatchPolicyUpsert:
 			logCtx.Info("Source UID mismatch, upsert policy: updating in-place")
@@ -328,9 +328,10 @@ const (
 	// identityActionUpdate: source-uid matches, same principal. Normal update path.
 	identityActionUpdate identityActionType = iota
 
-	// identityActionDeleteRecreate: source-uid changed on the same principal,
+	// identityActionMismatch: source-uid changed on the same principal,
 	// meaning the resource was deleted and recreated on the principal side.
-	identityActionDeleteRecreate
+	// The actual reconciliation action is determined by effectiveMismatchPolicy.
+	identityActionMismatch
 
 	// identityActionTransition: principal-uid changed (HA failover detected).
 	// The new principal has different resource UIDs, but the resource is
@@ -381,7 +382,7 @@ func identityAction(r *application.IdentityCompareResult) identityActionType {
 	if r.AdoptedPrincipalUID && !r.SourceUIDMatch {
 		return identityActionTransition
 	}
-	return identityActionDeleteRecreate
+	return identityActionMismatch
 }
 
 func (a *Agent) processIncomingAppProject(ev *event.Event) error {
